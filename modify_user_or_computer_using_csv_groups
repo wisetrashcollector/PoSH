@@ -32,7 +32,9 @@
 # Domain Admins
 # IT Admin Group - VMWare
 #
-# If a group name does not work, check the "Group name (pre-Windows 2000)" property - your group name probably changed.
+# IMPORTANT NOTE ABOUT PROFILES:
+# - You need to have at least two profiles for this script to work, even if one is a placeholder.
+# - If a group name does not work, check the "Group name (pre-Windows 2000)" property - your group name probably changed.
 #
 # ENVIORNMENTAL VARIABLES:
 # Location of CSV Profiles and Activity Log. Modify these paths as desired.
