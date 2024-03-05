@@ -82,7 +82,8 @@ function SelectFile {
     }
 
     for ($i = 0; $i -lt $files.Count; $i++) {
-        Write-Host "$($i + 1). $($files[$i])"
+        $displayName = $files[$i] -replace [regex]::Escape($prefix), '' -replace '\.csv$', ''
+        Write-Host "$($i + 1). $displayName"
     }
 
     $selection = Read-Host "Enter the number of the file to use (or 'q' to cancel)"
@@ -99,6 +100,7 @@ function SelectFile {
         return SelectFile -profilePath $profilePath -prefix $prefix
     }
 }
+
 
 function AddObjectToGroups {
     param (
