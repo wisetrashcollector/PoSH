@@ -24,8 +24,4 @@ When modifying a user, only files named 'UserProfile_' will be displayed.
 
 Each Group name in your profile files should be on a separate line. No headers - just the name. Spaces inside a Group name are acceptable if they're part of the name, but don't have additional spaces at the beginning or end of a group name.
 
-For example, this Admin profile also manages VMWare...
-File name: UserProfile_Admin.csv
-Content is only two lines:
-Domain Admins
-IT Admin Group - VMWare
+For an example, please see this readme at the top of the code...
