@@ -17,8 +17,8 @@
 # PROFILE NAMING, FORMAT & LOCATION:
 # The list of profile choices is built on the fly and based on the name listed in the profile directory. 
 #
-# "UserProfile_Assistants.csv" is a User Profile. It will show up as "Assistants".
-# "ComputerProfile_Default.csv" is a Computer Profile. It will show up as "Default".
+# "UserProfile_Assistants.csv" is a User Profile.
+# "ComputerProfile_Default.csv" is a Computer Profile.
 #
 # When modifying a computer, only files named 'ComputerProfile_' will be displayed.
 # When modifying a user, only files named 'UserProfile_' will be displayed.
@@ -31,6 +31,8 @@
 # Content is only two lines:
 # Domain Admins
 # IT Admin Group - VMWare
+#
+# If a group name does not work, check the "Group name (pre-Windows 2000)" property - your group name probably changed.
 #
 # ENVIORNMENTAL VARIABLES:
 # Location of CSV Profiles and Activity Log. Modify these paths as desired.
@@ -145,7 +147,7 @@ Write-Host "This script adds users & computers to groups using .csv 'profile' fi
 Write-Host "Specify computer names with a '$' at the end. (i.e.- computername$)"
 Write-Host " "
 Write-Host "AD Profiles are located here: "$ADProfilesPath
-Write-Host "Script activity is being recorded to a time-stamped file here: " $ActivityLogPath
+Write-Host "Script activity is recorded here: " $ActivityLogPath
 Write-Host " "
 do {
     $objectName = Read-Host "Enter the name of the object or [q]uit"
