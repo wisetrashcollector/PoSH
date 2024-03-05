@@ -17,8 +17,8 @@
 # PROFILE NAMING, FORMAT & LOCATION:
 # The list of profile choices is built on the fly and based on the name listed in the profile directory. 
 #
-# "UserProfile_Assistants.csv" is a User Profile.
-# "ComputerProfile_Default.csv" is a Computer Profile.
+# "UserProfile_Assistants.csv" is a User Profile. It will show up as "Assistants".
+# "ComputerProfile_Default.csv" is a Computer Profile. It will show up as "Default".
 #
 # When modifying a computer, only files named 'ComputerProfile_' will be displayed.
 # When modifying a user, only files named 'UserProfile_' will be displayed.
