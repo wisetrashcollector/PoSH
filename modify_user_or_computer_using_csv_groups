@@ -1,1 +1,158 @@
+# DISCLAIMER: 
+# Use This script at your own risk. The author is not liable for any damages or losses arising from it's use.
+# By running/executing this script, you accept full responsibility for the results.
+#
+# If you have questions or suggestions, feel free to send me an email: todd@t15n.com 
+# This is a complete rewrite of similar work I did at a prior employer, and it saved our junior AD admins a lot of time.
+#
+# WHAT THIS SCRIPT DOES:
+# This script leverages .csv formatted profile files to add Users or Computers to groups in Active Directory. 
+#
+# SCRIPT REQUIREMENTS:
+# - Must be run with appropriate permissions on a local Active Directory server. 
+# - Separate .csv files are required for each profile; all profiles will be stored in the $ADProfilesPath folder. 
+# - When modifying users, specify the SAMAccountName (often the first part of someone's email address before the @ symbol).
+# - Computer names must must have a $ at the end of the name or the Add-ADObjects cmdlet will fail the action.
+#
+# PROFILE NAMING, FORMAT & LOCATION:
+# The list of profile choices is built on the fly and based on the name listed in the profile directory. 
+#
+# "UserProfile_Assistants.csv" is a User Profile.
+# "ComputerProfile_Default.csv" is a Computer Profile.
+#
+# If you're modifying a computer, only files named 'ComputerProfile_' will be displayed.
+# If you're modifying a user, only files named 'UserProfile_' will be displayed.
+#
+# When building your target profiles, each Group name should be on a separate line. No headers. Just the name. Spaces
+# inside a Group name are acceptable, but don't have additional spaces at the beginning or end of a group name on the line.
+#
+# ENVIORNMENTAL VARIABLES:
+# Location of CSV Profiles and Activity Log. Modify these paths as desired.
+$ADProfilesPath = "C:\Scripts\AD_Profiles"
+$ActivityLogPath = "C:\Scripts\AD_Profiles\ActivityLog"
 
+###### DO NOT MAKE CHANGES BELOW THIS LINE UNLESS YOU'RE SURE OF WHAT YOU'll BREAK. SCROLL TO END FOR MAIN SCRIPT. ######
+
+function Check-AndCreatePaths {
+    param (
+        [string]$GroupProfilesPath,
+        [string]$LogPath
+    )
+    if (-not (Test-Path -Path $GroupProfilesPath)) {
+        New-Item -Path $GroupProfilesPath -ItemType Directory -Force | Out-Null
+        Write-Host "Profile path created at $GroupProfilesPath."
+    }
+    if (-not (Test-Path -Path $LogPath)) {
+        New-Item -Path $LogPath -ItemType Directory -Force | Out-Null
+    }
+}
+
+function Get-ObjectType {
+    param ([string]$objectName)
+
+    try {
+        Get-ADUser -Identity $objectName -ErrorAction Stop
+        return "user"
+    } catch {
+        try {
+            Get-ADComputer -Identity $objectName -ErrorAction Stop
+            return "computer"
+        } catch {
+            return "other"
+        }
+    }
+}
+
+function SelectFile {
+    param (
+        [string]$profilePath,
+        [string]$prefix
+    )
+
+    $files = Get-ChildItem -Path $profilePath -Filter "$prefix*.csv" | Select-Object -ExpandProperty Name
+    if ($files.Count -eq 0) {
+        Write-Host "No files found."
+        return $null
+    }
+
+    for ($i = 0; $i -lt $files.Count; $i++) {
+        Write-Host "$($i + 1). $($files[$i])"
+    }
+
+    $selection = Read-Host "Enter the number of the file to use (or 'q' to cancel)"
+    if ($selection -eq 'q') {
+        return $null
+    }
+
+    [int]$index = 0
+    if ([int]::TryParse($selection, [ref]$index) -and $index -ge 1 -and $index -le $files.Count) {
+        $selectedFile = $files[$index - 1]
+        return $selectedFile
+    } else {
+        Write-Host "Invalid selection. Please try again."
+        return SelectFile -profilePath $profilePath -prefix $prefix
+    }
+}
+
+function AddObjectToGroups {
+    param (
+        [string]$objectType,
+        [string]$objectName,
+        [string]$profilePath,
+        [string]$logPath
+    )
+
+    $prefix = if ($objectType -eq "computer") { "ComputerProfile_" } else { "UserProfile_" }
+    $profileFile = SelectFile -profilePath $profilePath -prefix $prefix
+
+    if (-not $profileFile) {
+        Write-Host "Operation cancelled."
+        return
+    }
+
+    $groups = Get-Content -Path "$profilePath\$profileFile"
+    foreach ($group in $groups) {
+        try {
+            Add-ADGroupMember -Identity $group -Members $objectName -ErrorAction Stop
+            Write-Host "Added '$objectName' to group '$group'."
+        } catch {
+            $errorMessage = "Failed to add '$objectName' to group '$group'. Error: $_"
+            Write-Host $errorMessage
+            "$errorMessage" | Out-File -FilePath "$logPath\ErrorLog_$(Get-Date -Format 'yyyyMMdd').log" -Append
+        }
+    }
+
+    $logMessage = "Added '$objectName' to groups: $($groups -join ', ')"
+    $logMessage | Out-File -FilePath "$logPath\ActivityLog_$(Get-Date -Format 'yyyyMMdd').log" -Append
+    Write-Host "Activity logged to '$logPath\ActivityLog_$(Get-Date -Format 'yyyyMMdd').log'"
+}
+
+###### MAIN SCRIPT ######
+
+Import-Module ActiveDirectory -ErrorAction SilentlyContinue
+
+Check-AndCreatePaths -GroupProfilesPath $ADProfilesPath -LogPath $ActivityLogPath
+
+Write-Host "This script adds users & computers to groups using .csv 'profile' files." 
+Write-Host "Specify computer names with a '$' at the end. (i.e.- computername$)"
+Write-Host " "
+Write-Host "AD Profiles are located here: "$ADProfilesPath
+Write-Host "Script activity is being recorded to a time-stamped file here: " $ActivityLogPath
+Write-Host " "
+do {
+    $objectName = Read-Host "Enter the name of the object or [q]uit"
+    if ($objectName -eq 'q') { break }
+
+    $objectType = Get-ObjectType -objectName $objectName
+    switch ($objectType) {
+        "user" {
+            AddObjectToGroups -objectType "user" -objectName $objectName -profilePath $ADProfilesPath -logPath $ActivityLogPath
+        }
+        "computer" {
+            AddObjectToGroups -objectType "computer" -objectName $objectName -profilePath $ADProfilesPath -logPath $ActivityLogPath
+        }
+        "other" {
+            Write-Host "The object '$objectName' does not exist, or is neither a user nor computer."
+        }
+    }
+} while ($true)
